@@ -1,1 +1,5 @@
-# Cron tab date reader
+=======
+cron-admin
+==========
+
+Find next run time of cron jobs

@@ -52,9 +52,18 @@ class NextRun(object):
                 )
 
             for cron in cron_data:
+                hour_delta = self.find_time_delta(
+                    cron[u'hour'], valid_current[u'hour']
+                )
+
+                minute_delta = self.find_time_delta(
+                    cron[u'minute'], valid_current[u'minute']
+                )
+
                 next_run = self.find_next_run_time(
                     cron[u'hour'], cron[u'minute'],
-                    valid_current[u'hour'], valid_current[u'minute']
+                    valid_current[u'hour'], valid_current[u'minute'],
+                    hour_delta, minute_delta
                 )
 
                 next_run_times.append([
@@ -87,60 +96,66 @@ class NextRun(object):
 
         return valid_datetime
 
-    def find_next_run_time(
-            self, cron_hour, cron_minute, current_hour, current_minute):
+    def find_next_run_time(self, cron_hour, cron_minute, current_hour,
+                           current_minute, hour_delta, minute_delta):
         """
         Find the next time / day to run the cron given the current time
+        :param current_hour:
+        :param current_minute:
+        :param hour_delta:
+        :param minute_delta:
         :param cron_minute:
         :param cron_hour:
-        :param current_time:
         :return: the next time and next day
         """
-        hour_delta = self.find_time_delta(cron_hour, current_hour)
-        minute_delta = self.find_time_delta(cron_minute, current_minute)
+        NOW = 0
+        LAST_HOUR_OF_DAY = 23
 
         if cron_minute == u'*' and cron_hour == u'*':
             # Should run every minute of every hour in a day
             next_run_minute = current_minute
             next_run_hour = current_hour
             next_run_day = u'today'
+
         elif cron_hour == u'*':
             # Minute is set but should run every hour of a day
             # Cron run time has passed
-            if minute_delta < 0:
+            if minute_delta < NOW:
                 # Check for time going into next day (after 23:00)
-                if current_hour != 23:
+                if current_hour != LAST_HOUR_OF_DAY:
                     next_run_hour = current_hour + 1
                     next_run_day = u'today'
                 else:
-                    next_run_hour = 0
+                    next_run_hour = NOW
                     next_run_day = u'tomorrow'
             else:
                 next_run_hour = current_hour
                 next_run_day = u'today'
 
             next_run_minute = cron_minute
+
         elif cron_minute == u'*':
             # Hour is set but should run every minute of that hour
             # Cron run time has passed
-            if hour_delta < 0:
-                next_run_minute = 0
+            if hour_delta < NOW:
+                next_run_minute = NOW
                 next_run_day = u'tomorrow'
-            elif hour_delta == 0:
+            elif hour_delta == NOW:
                 next_run_minute = current_minute
                 next_run_day = u'today'
             else:
-                next_run_minute = 0
+                next_run_minute = NOW
                 next_run_day = u'today'
 
             next_run_hour = cron_hour
+
         else:
             # Both Hour and minute are specified and should only run then
             # Cron run time has passed
-            if hour_delta < 0:
+            if hour_delta < NOW:
                 next_run_day = u'tomorrow'
-            elif hour_delta == 0:
-                if minute_delta < 0:
+            elif hour_delta == NOW:
+                if minute_delta < NOW:
                     next_run_day = u'tomorrow'
                 else:
                     next_run_day = u'today'
@@ -150,6 +165,7 @@ class NextRun(object):
             next_run_minute = cron_minute
             next_run_hour = cron_hour
 
+        # Convenient structure
         next_run_time = {
             u'day': next_run_day,
             u'hour': next_run_hour,

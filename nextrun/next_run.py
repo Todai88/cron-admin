@@ -82,11 +82,17 @@ class NextRun(object):
         """
         valid_minute = None
         valid_hour = None
+        MIN_HOUR = 0
+        MAX_HOUR = 23
+        MIN_MINUTE = 0
+        MAX_MINUTE = 59
+        TIME_SEPARATOR = u':'
 
-        hour, minute = current_date.split(u':')
+        hour, minute = current_date.split(TIME_SEPARATOR)
 
         try:
-            if (0 <= int(hour) <= 23) and (0 <= int(minute) <= 59):
+            if ((MIN_HOUR <= int(hour) <= MAX_HOUR) and
+                    (MIN_MINUTE <= int(minute) <= MAX_MINUTE)):
                 valid_minute = int(minute)
                 valid_hour = int(hour)
         except ValueError as e:
@@ -110,42 +116,46 @@ class NextRun(object):
         """
         NOW = 0
         LAST_HOUR_OF_DAY = 23
+        EVERY_MINUTE = u'*'
+        EVERY_HOUR = u'*'
+        CURRENT_DAY = u'today'
+        NEXT_DAY = u'tomorrow'
 
-        if cron_minute == u'*' and cron_hour == u'*':
+        if cron_minute == EVERY_MINUTE and cron_hour == EVERY_HOUR:
             # Should run every minute of every hour in a day
             next_run_minute = current_minute
             next_run_hour = current_hour
-            next_run_day = u'today'
+            next_run_day = CURRENT_DAY
 
-        elif cron_hour == u'*':
+        elif cron_hour == EVERY_HOUR:
             # Minute is set but should run every hour of a day
             # Cron run time has passed
             if minute_delta < NOW:
                 # Check for time going into next day (after 23:00)
                 if current_hour != LAST_HOUR_OF_DAY:
                     next_run_hour = current_hour + 1
-                    next_run_day = u'today'
+                    next_run_day = CURRENT_DAY
                 else:
                     next_run_hour = NOW
-                    next_run_day = u'tomorrow'
+                    next_run_day = NEXT_DAY
             else:
                 next_run_hour = current_hour
-                next_run_day = u'today'
+                next_run_day = CURRENT_DAY
 
             next_run_minute = cron_minute
 
-        elif cron_minute == u'*':
+        elif cron_minute == EVERY_MINUTE:
             # Hour is set but should run every minute of that hour
             # Cron run time has passed
             if hour_delta < NOW:
                 next_run_minute = NOW
-                next_run_day = u'tomorrow'
+                next_run_day = NEXT_DAY
             elif hour_delta == NOW:
                 next_run_minute = current_minute
-                next_run_day = u'today'
+                next_run_day = CURRENT_DAY
             else:
                 next_run_minute = NOW
-                next_run_day = u'today'
+                next_run_day = CURRENT_DAY
 
             next_run_hour = cron_hour
 
@@ -153,14 +163,14 @@ class NextRun(object):
             # Both Hour and minute are specified and should only run then
             # Cron run time has passed
             if hour_delta < NOW:
-                next_run_day = u'tomorrow'
+                next_run_day = NEXT_DAY
             elif hour_delta == NOW:
                 if minute_delta < NOW:
-                    next_run_day = u'tomorrow'
+                    next_run_day = NEXT_DAY
                 else:
-                    next_run_day = u'today'
+                    next_run_day = CURRENT_DAY
             else:
-                next_run_day = u'today'
+                next_run_day = CURRENT_DAY
 
             next_run_minute = cron_minute
             next_run_hour = cron_hour
@@ -182,8 +192,9 @@ class NextRun(object):
         :return:
         """
         delta = 0
+        EVERY_TIME = u'*'
 
-        if not cron == u'*' and not current == u'*':
+        if not cron == EVERY_TIME and not current == EVERY_TIME:
             delta = cron - current
 
         return delta
@@ -195,9 +206,15 @@ class NextRun(object):
         :param minute:
         :return:
         """
-        hour = unicode(hour)
-        minute = unicode(minute) if minute > 9 else u'0' + unicode(minute)
+        SINGLE_DIGIT = 9
+        PADDING_DIGIT = u'0'
+        TIME_SEPARATOR = u':'
 
-        date = u':'.join([hour, minute])
+        hour = unicode(hour)
+        minute = (unicode(minute)
+                  if minute > SINGLE_DIGIT
+                  else PADDING_DIGIT + unicode(minute))
+
+        date = TIME_SEPARATOR.join([hour, minute])
 
         return date

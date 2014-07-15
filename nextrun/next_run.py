@@ -37,35 +37,42 @@ class NextRun(object):
         """
         next_run_times = []
 
+        # Check that a valid date and time have been passed
         valid_current = self.validate_datetime(current_time)
 
         # If we have been passed a valid current time
         if valid_current[u'minute'] and valid_current[u'hour']:
 
             if cron_file_path and not cron_string:
+                # Parse data from a given file
                 cron_data = (
                     CronParser(self.logger).parse_cron_file(cron_file_path)
                 )
             else:
+                # Parse data from a given string
                 cron_data = (
                     CronParser(self.logger).parse_cron_string(cron_string)
                 )
 
             for cron in cron_data:
+                # Find how many hours until the next run time
                 hour_delta = self.find_time_delta(
                     cron[u'hour'], valid_current[u'hour']
                 )
 
+                # Find how many minutes past the hour until the next run time
                 minute_delta = self.find_time_delta(
                     cron[u'minute'], valid_current[u'minute']
                 )
 
+                # Calculate the next run time from the deltas
                 next_run = self.find_next_run_time(
                     cron[u'hour'], cron[u'minute'],
                     valid_current[u'hour'], valid_current[u'minute'],
                     hour_delta, minute_delta
                 )
 
+                # Create a results list entry for each cron
                 next_run_times.append([
                     self.format_date(next_run[u'hour'], next_run[u'minute']),
                     next_run[u'day'],
